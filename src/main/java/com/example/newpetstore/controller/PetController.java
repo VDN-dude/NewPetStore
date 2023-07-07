@@ -1,124 +1,93 @@
 package com.example.newpetstore.controller;
 
 import com.example.newpetstore.entity.Pet;
+import com.example.newpetstore.entity.User;
+import com.example.newpetstore.service.PetService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import lombok.SneakyThrows;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/pet")
 public class PetController {
+    @Autowired
+    private PetService petService;
 
-    private final List<Pet> pets = new ArrayList<>();
-    private final String[] statuses = new String[]{"available", "pending", "sold"};
-
+    @Operation(description = "Add pet in the store (only for logged users)")
+    @SecurityRequirement(name = "token")
     @PostMapping
     public ResponseEntity<Pet> save(@RequestBody Pet pet) {
-        pets.add(pet);
+
+        petService.save(pet);
         return ResponseEntity.ok(pet);
     }
 
+    @Operation(description = "Update pet (only for logged users)")
     @PutMapping
-    public ResponseEntity<Pet> update(int id,
-                                      @RequestBody Pet pet) {
-        if (pets.get(id) != null) {
+    public ResponseEntity<Pet> update(int id, @RequestBody Pet pet,
+                                      @AuthenticationPrincipal User user) {
 
-            pets.add(pet);
+        if (petService.update(id, pet, user)) {
+
             return ResponseEntity.ok(pet);
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.badRequest().build();
     }
 
+    @Operation(description = "Find pet by id")
     @GetMapping("/{petId}")
     public ResponseEntity<Pet> findById(@PathVariable int petId) {
 
-        for (Pet pet : pets) {
+        Optional<Pet> byId = petService.findById(petId);
 
-            if (pet.getId() == petId) {
+        if (byId.isPresent()) {
 
-                return ResponseEntity.ok(pet);
-            }
-
+            return ResponseEntity.ok(byId.get());
         }
 
         return ResponseEntity.notFound().build();
     }
 
-    @PostMapping("/{petId}")
-    public ResponseEntity<Pet> updateWithForm(@PathVariable int petId,
-                                              String name,
-                                              String status) {
-        for (Pet pet : pets) {
-
-            if (pet.getId() == petId){
-
-                pet.setName(name);
-                pet.setStatus(status);
-
-                return ResponseEntity.ok(pet);
-            }
-
-        }
-
-        return ResponseEntity.notFound().build();
-    }
-
+    @Operation(description = "Delete pet by id (only for logged and own users)")
     @DeleteMapping("/{petId}")
-    public ResponseEntity<Void> delete(@PathVariable int petId) {
+    public ResponseEntity<Void> delete(@PathVariable int petId,
+                                       @AuthenticationPrincipal User user) {
 
-        int i = 0;
 
-        for (Pet pet : pets) {
+        if (petService.delete(petId, user)) {
 
-            if (pet.getId() == petId){
-
-                pets.remove(i);
-                return ResponseEntity.ok().build();
-            }
-            i++;
+            return ResponseEntity.ok().build();
         }
 
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.badRequest().build();
     }
 
-    @GetMapping("/findByStatus")
-    public ResponseEntity<List<Pet>> findByStatus(String status){
-        List<Pet> petList = new ArrayList<>();
-        for (String s : statuses) {
-
-            if (!s.equals(status)) {
-
-                for (Pet pet : pets) {
-
-                    if (pet.getStatus().equals(s)){
-                        petList.add(pet);
-                    }
-                }
-            }
-        }
-        return ResponseEntity.ok(petList);
+    @GetMapping("/find-by-status")
+    public ResponseEntity<List<Pet>> findByStatus(Pet.Status status) {
+        List<Pet> byStatus = petService.findByStatus(status);
+        return ResponseEntity.ok(byStatus);
     }
 
     @SneakyThrows
-    @PostMapping("/{petId}/uploadImage")
+    @Operation(description = "Upload image to pet (only for logged and own users)")
+    @PostMapping("/{petId}/upload-image")
     public ResponseEntity<Pet> uploadImage(@PathVariable int petId,
-                                           MultipartFile file){
+                                           MultipartFile file,
+                                           @AuthenticationPrincipal User user) {
 
-        for (Pet pet : pets) {
 
-            if (pet.getId() == petId){
+        if (petService.uploadImage(petId, file.getBytes(), user)) {
 
-                byte[] bytes = file.getBytes();
-                List<byte[]> photoUrls = pet.getPhotoUrls();
-                photoUrls.add(bytes);
-                pet.setPhotoUrls(photoUrls);
-
-                return ResponseEntity.ok(pet);
-            }
+            return ResponseEntity.ok().build();
         }
 
         return ResponseEntity.notFound().build();

@@ -3,12 +3,26 @@ package com.example.newpetstore.entity;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
+import javax.persistence.*;
+import java.util.List;
+
+@Entity
 @Data
+@Table(name = "pet_store_order")
 @RequiredArgsConstructor
 public class Order {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    private Integer petId;
-    private Integer quantity;
+
+    @OneToMany(cascade = CascadeType.ALL)
+    private List<Pet> pet;
+
     private String status;
-    private boolean complete;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
 }

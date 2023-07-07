@@ -1,105 +1,95 @@
 package com.example.newpetstore.controller;
 
+import com.example.newpetstore.config.JWTTokenProvider;
 import com.example.newpetstore.entity.User;
+import com.example.newpetstore.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/user")
 public class UserController {
 
-    private final Map<String, User> users = new HashMap<>();
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private JWTTokenProvider jwtTokenProvider;
 
+    @Operation(description = "Create new user")
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
-        users.put(user.getUsername(), user);
+        userService.save(user);
         return ResponseEntity.ok(user);
     }
 
-    @GetMapping("/login")
+    @Operation(description = "Login in the store")
+    @PostMapping("/login")
     public ResponseEntity<User> login(String username,
-                                      String password,
-                                      HttpSession httpSession) {
-        if (users.get(username) != null) {
+                                        String password) {
+        Optional<User> user = userService.login(username, password);
+        if (user.isPresent()) {
+            jwtTokenProvider.generateToken(username, user.get().getRoles());
 
-            User user = users.get(username);
-
-            if (user.getPassword().equals(password)) {
-
-                httpSession.setAttribute("sessionUser", user);
-                return ResponseEntity.ok().build();
-            }
-
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.ok(user.get());
         }
         return ResponseEntity.notFound().build();
     }
 
+    @Operation(description = "Logout from the store")
     @GetMapping("/logout")
     public ResponseEntity<Void> logout(HttpSession httpSession) {
         httpSession.removeAttribute("sessionUser");
         return ResponseEntity.ok().build();
     }
 
+    @Operation(description = "Find user by username")
     @GetMapping("/{username}")
     public ResponseEntity<User> findByUsername(@PathVariable String username) {
 
-        if (users.get(username) != null) {
+        Optional<User> byUsername = userService.findByUsername(username);
 
-            return ResponseEntity.ok(users.get(username));
+        if (byUsername.isPresent()) {
+
+            return ResponseEntity.ok(byUsername.get());
         }
 
         return ResponseEntity.notFound().build();
     }
 
+    @Operation(description = "Update user (only for logged users)")
     @PutMapping("/{username}")
     public ResponseEntity<Void> update(@PathVariable String username,
-                                           @RequestBody User user,
-                                           HttpSession httpSession) {
-        if (httpSession.getAttribute("sessionUser") != null) {
+                                       @RequestBody User user,
+                                       @AuthenticationPrincipal User sessionUser) {
 
-            User sessionUser = (User) httpSession.getAttribute("sessionUser");
+        if (sessionUser.getUsername().equals(username)) {
 
-            if (sessionUser.getUsername().equals(username)) {
-
-                users.remove(username);
-                users.put(user.getUsername(), user);
-                return ResponseEntity.ok().build();
-            }
-
-            return ResponseEntity.badRequest().build();
+            userService.update(username, user);
+            return ResponseEntity.ok().build();
         }
 
         return ResponseEntity.badRequest().build();
+
     }
 
+    @Operation(description = "Delete user by username (only for logged user for own account)")
     @DeleteMapping("/{username}")
     public ResponseEntity<Void> delete(@PathVariable String username,
-                                           HttpSession httpSession) {
+                                       @AuthenticationPrincipal User user) {
 
-        if (httpSession.getAttribute("sessionUser") != null) {
 
-            User sessionUser = (User) httpSession.getAttribute("sessionUser");
+        if (user.getUsername().equals(username)) {
 
-            if (sessionUser.getUsername().equals(username)) {
-
-                users.remove(username);
-                httpSession.removeAttribute("sessionUser");
-                return ResponseEntity.ok().build();
-            }
-
-            return ResponseEntity.badRequest().build();
+            userService.delete(username);
+            return ResponseEntity.ok().build();
         }
 
         return ResponseEntity.badRequest().build();
     }
-
-//    @PostMapping("/createWithList")
-
-
-//    @PostMapping("/createWithArray")
 }
