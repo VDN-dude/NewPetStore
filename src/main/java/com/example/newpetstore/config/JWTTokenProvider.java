@@ -23,8 +23,7 @@ public class JWTTokenProvider {
     @Value("${jwt.token.secret}")
     private String jwtSecret;
 
-    @Value("${jwt.token.expired}")
-    private String jwtExpirationInMs;
+    private final Long jwtExpirationInMs = 3600000L;
 
     @Autowired
     private UserDetailsService userDetailsService;

@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/user")
@@ -33,7 +35,8 @@ public class UserController {
     @Operation(description = "Login in the store")
     @PostMapping("/login")
     public ResponseEntity<String> login(String username,
-                                        String password) {
+                                        String password,
+                                        HttpServletRequest request) {
 
         Optional<User> user = userService.login(username, password);
 

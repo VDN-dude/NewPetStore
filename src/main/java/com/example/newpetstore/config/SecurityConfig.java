@@ -45,6 +45,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(LOGIN_ENDPOINT).permitAll()
                 .antMatchers(REG_ENDPOINT).permitAll()
                 .antMatchers(ADMIN_ENDPOINT).hasAuthority("ADMIN")
+                .antMatchers(HttpMethod.GET, PUBLIC_URLS).permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
@@ -56,5 +57,4 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
     }
-
 }
