@@ -20,8 +20,7 @@ import java.util.*;
 @Component
 public class JWTTokenProvider {
 
-    @Value("jwt.token.secret")
-    private String jwtSecret;
+    private String jwtSecret = "qwerty";
 
     private final Long jwtExpirationInMs = 3600000L;
 
