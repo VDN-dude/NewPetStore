@@ -2,6 +2,7 @@ package com.example.newpetstore.controller;
 
 import com.example.newpetstore.config.JWTTokenProvider;
 import com.example.newpetstore.entity.Order;
+import com.example.newpetstore.entity.User;
 import com.example.newpetstore.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -10,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import java.util.Optional;
 
 @RestController
@@ -23,29 +23,36 @@ public class StoreController {
     @Autowired
     private JWTTokenProvider jwtTokenProvider;
 
-    @Operation(description = "Add order (only for logged users)")
+    @Operation(summary = "Add order", description = "only for logged users")
     @PostMapping("/order")
     public ResponseEntity<Order> save(@RequestBody Order order) {
         orderService.save(order);
         return ResponseEntity.ok(order);
     }
 
-    @Operation(description = "Add pet to order (only for logged users)")
+    @Operation(summary = "Add pet to order", description = "only for logged users")
     @PutMapping("/order/{orderId}/add-pet")
     public ResponseEntity<Void> addPet(@PathVariable int orderId,
                                        int petId,
                                        HttpServletRequest request) {
 
-        String token = jwtTokenProvider.resolveToken(request);
-        String username = jwtTokenProvider.getUserUsernameFromJWT(token);
 
-        if (orderService.addPet(orderId, petId, username)) {
-            return ResponseEntity.ok().build();
+        Optional<User> authenticationUser = getAuthenticationUser(request);
+
+        if (authenticationUser.isPresent()) {
+
+            if (orderService.addPet(orderId, petId, authenticationUser.get())) {
+
+                return ResponseEntity.ok().build();
+            }
+
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
+
+        return ResponseEntity.badRequest().build();
     }
 
-    @Operation(description = "Find order by id (only for logged and own users)")
+    @Operation(summary = "Find order by id", description = "only for logged and own users")
     @GetMapping("/order/{orderId}")
     public ResponseEntity<Order> findById(@PathVariable int orderId) {
 
@@ -55,20 +62,33 @@ public class StoreController {
 
     }
 
-    @Operation(description = "Delete order by id (only for logged and own users)")
+    @Operation(summary = "Delete order by id", description = "only for logged and own users")
     @DeleteMapping("/order/{orderId}")
     public ResponseEntity<Void> delete(@PathVariable int orderId,
                                        HttpServletRequest request) {
 
-        String token = jwtTokenProvider.resolveToken(request);
-        String username = jwtTokenProvider.getUserUsernameFromJWT(token);
+        Optional<User> authenticationUser = getAuthenticationUser(request);
 
-        if (orderService.delete(orderId, username)) {
+        if (authenticationUser.isPresent()) {
 
-            return ResponseEntity.ok().build();
+            if (orderService.delete(orderId, authenticationUser.get())) {
+
+                return ResponseEntity.ok().build();
+            }
+
+            return ResponseEntity.badRequest().build();
         }
 
         return ResponseEntity.badRequest().build();
     }
 
+    private Optional<User> getAuthenticationUser(HttpServletRequest request) {
+
+        String token = jwtTokenProvider.resolveToken(request);
+        if (jwtTokenProvider.validateToken(token)) {
+
+            return Optional.ofNullable((User) jwtTokenProvider.getAuthentication(token));
+        }
+        return Optional.empty();
+    }
 }

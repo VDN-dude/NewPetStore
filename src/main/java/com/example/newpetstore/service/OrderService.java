@@ -26,14 +26,14 @@ public class OrderService {
         return orderRepository.findById(id);
     }
 
-    public boolean delete(int id, String username){
+    public boolean delete(int id, User user){
         Optional<Order> byId = orderRepository.findById(id);
 
         if (byId.isPresent()){
 
             Order order = byId.get();
 
-            if (order.getUser().getUsername().equals(username)){
+            if (order.getUser().getUsername().equals(user.getUsername())){
 
                 petRepository.deleteById(id);
                 return true;
@@ -42,7 +42,7 @@ public class OrderService {
         return false;
     }
 
-    public boolean addPet(int orderId, int petId, String username){
+    public boolean addPet(int orderId, int petId, User user){
 
         Optional<Order> orderById = orderRepository.findById(orderId);
         Optional<Pet> petById = petRepository.findById(petId);
@@ -52,7 +52,7 @@ public class OrderService {
 
             Order order = orderById.get();
 
-            if (order.getUser().getUsername().equals(username)) {
+            if (order.getUser().getUsername().equals(user.getUsername())) {
 
                 Pet pet = petById.get();
                 List<Pet> pets = order.getPet();

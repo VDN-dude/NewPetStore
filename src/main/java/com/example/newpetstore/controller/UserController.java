@@ -7,14 +7,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/user")
@@ -35,8 +32,7 @@ public class UserController {
     @Operation(description = "Login in the store")
     @PostMapping("/login")
     public ResponseEntity<String> login(String username,
-                                        String password,
-                                        HttpServletRequest request) {
+                                        String password) {
 
         Optional<User> user = userService.login(username, password);
 
@@ -51,7 +47,7 @@ public class UserController {
     @Operation(description = "Logout from the store")
     @GetMapping("/logout")
     public ResponseEntity<Void> logout(HttpSession httpSession) {
-        httpSession.removeAttribute("sessionUser");
+        httpSession.invalidate();
         return ResponseEntity.ok().build();
     }
 
@@ -65,41 +61,58 @@ public class UserController {
 
     }
 
-    @Operation(description = "Update user (only for logged users)")
+    @Operation(summary = "Update user", description = "only for logged users")
     @SecurityRequirement(name = "token")
     @PutMapping("/{username}")
     public ResponseEntity<Void> update(@PathVariable String username,
                                        @RequestBody User user,
                                        HttpServletRequest request) {
 
-        String token = jwtTokenProvider.resolveToken(request);
-        String tokenUsername = jwtTokenProvider.getUserUsernameFromJWT(token);
+        Optional<User> authenticationUser = getAuthenticationUser(request);
 
-        if (tokenUsername.equals(username)) {
+        if (authenticationUser.isPresent()) {
 
-            userService.update(username, user);
-            return ResponseEntity.ok().build();
+            if (authenticationUser.get().getUsername().equals(username)) {
+
+                userService.update(username, user);
+                return ResponseEntity.ok().build();
+            }
+
+            return ResponseEntity.badRequest().build();
         }
 
         return ResponseEntity.badRequest().build();
-
     }
 
-    @Operation(description = "Delete user by username (only for logged user for own account)")
+    @Operation(summary = "Delete user by username", description = "only for logged user for own account")
     @SecurityRequirement(name = "token")
     @DeleteMapping("/{username}")
     public ResponseEntity<Void> delete(@PathVariable String username,
                                        HttpServletRequest request) {
 
-        String token = jwtTokenProvider.resolveToken(request);
-        String tokenUsername = jwtTokenProvider.getUserUsernameFromJWT(token);
+        Optional<User> authenticationUser = getAuthenticationUser(request);
 
-        if (tokenUsername.equals(username)) {
+        if (authenticationUser.isPresent()) {
 
-            userService.delete(username);
-            return ResponseEntity.ok().build();
+            if (authenticationUser.get().getUsername().equals(username)) {
+
+                userService.delete(username);
+                return ResponseEntity.ok().build();
+            }
+
+            return ResponseEntity.badRequest().build();
         }
 
         return ResponseEntity.badRequest().build();
+    }
+
+    private Optional<User> getAuthenticationUser(HttpServletRequest request) {
+
+        String token = jwtTokenProvider.resolveToken(request);
+        if (jwtTokenProvider.validateToken(token)) {
+
+            return Optional.ofNullable((User) jwtTokenProvider.getAuthentication(token));
+        }
+        return Optional.empty();
     }
 }
