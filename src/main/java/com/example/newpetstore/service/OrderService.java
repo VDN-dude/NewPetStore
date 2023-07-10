@@ -22,55 +22,46 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-//    public Optional<Order> findById(int id){
-//        Optional<Order> byId = orderRepository.findById(id);
-//
-//        if (byId.isPresent()){
-//
-//            if (byId.get().getUser().getId().equals(user.getId())) {
-//
-//                return byId;
-//            }
-//        }
-//        return Optional.empty();
-//    }
-//
-//    public boolean delete(int id){
-//        Optional<Order> byId = orderRepository.findById(id);
-//
-//        if (byId.isPresent()){
-//
-//            Order order = byId.get();
-//
-//            if (order.getUser().getUsername().equals(username)){
-//
-//                petRepository.deleteById(id);
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
-//
-//    public boolean addPet(int orderId, int petId){
-//
-//        Optional<Order> orderById = orderRepository.findById(orderId);
-//        Optional<Pet> petById = petRepository.findById(petId);
-//
-//
-//        if (orderById.isPresent() & petById.isPresent()){
-//
-//            Order order = orderById.get();
-//
-//            if (order.getUser().getUsername().equals(username)) {
-//
-//                Pet pet = petById.get();
-//                List<Pet> pets = order.getPet();
-//                pets.add(pet);
-//                order.setPet(pets);
-//                orderRepository.save(order);
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
+    public Optional<Order> findById(int id){
+        return orderRepository.findById(id);
+    }
+
+    public boolean delete(int id, String username){
+        Optional<Order> byId = orderRepository.findById(id);
+
+        if (byId.isPresent()){
+
+            Order order = byId.get();
+
+            if (order.getUser().getUsername().equals(username)){
+
+                petRepository.deleteById(id);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean addPet(int orderId, int petId, String username){
+
+        Optional<Order> orderById = orderRepository.findById(orderId);
+        Optional<Pet> petById = petRepository.findById(petId);
+
+
+        if (orderById.isPresent() & petById.isPresent()){
+
+            Order order = orderById.get();
+
+            if (order.getUser().getUsername().equals(username)) {
+
+                Pet pet = petById.get();
+                List<Pet> pets = order.getPet();
+                pets.add(pet);
+                order.setPet(pets);
+                orderRepository.save(order);
+                return true;
+            }
+        }
+        return false;
+    }
 }

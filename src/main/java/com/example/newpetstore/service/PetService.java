@@ -19,7 +19,7 @@ public class PetService {
         return petRepository.save(pet);
     }
 
-    public boolean update(int id, Pet pet, User user) {
+    public boolean update(int id, Pet pet, String username) {
 
         Optional<Pet> byId = petRepository.findById(id);
 
@@ -27,7 +27,7 @@ public class PetService {
 
             Pet pet1 = byId.get();
 
-            if (pet1.getUser().getUsername().equals(user.getUsername())) {
+            if (pet1.getUser().getUsername().equals(username)) {
 
                 petRepository.save(pet);
                 return true;
@@ -44,7 +44,7 @@ public class PetService {
         return petRepository.findAllByStatus(status);
     }
 
-    public boolean uploadImage(int id, byte[] imageBytes, User user) {
+    public boolean uploadImage(int id, byte[] imageBytes, String username) {
 
         Optional<Pet> byId = petRepository.findById(id);
 
@@ -52,7 +52,7 @@ public class PetService {
 
             Pet pet = byId.get();
 
-            if (pet.getUser().getUsername().equals(user.getUsername())) {
+            if (pet.getUser().getUsername().equals(username)) {
 
                 List<byte[]> photo = pet.getPhoto();
                 photo.add(imageBytes);
@@ -65,14 +65,14 @@ public class PetService {
         return false;
     }
 
-    public boolean delete(int id, User user) {
+    public boolean delete(int id, String username) {
         Optional<Pet> byId = petRepository.findById(id);
 
         if (byId.isPresent()){
 
             Pet pet = byId.get();
 
-            if (pet.getUser().getUsername().equals(user.getUsername())){
+            if (pet.getUser().getUsername().equals(username)){
 
                 petRepository.deleteById(id);
                 return true;

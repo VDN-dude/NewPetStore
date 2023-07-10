@@ -1,5 +1,6 @@
 package com.example.newpetstore.controller;
 
+import com.example.newpetstore.config.JWTTokenProvider;
 import com.example.newpetstore.entity.Pet;
 import com.example.newpetstore.entity.User;
 import com.example.newpetstore.service.PetService;
@@ -13,20 +14,22 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/pet")
+@SecurityRequirement(name = "token")
 public class PetController {
     @Autowired
     private PetService petService;
+    @Autowired
+    private JWTTokenProvider jwtTokenProvider;
 
     @Operation(description = "Add pet in the store (only for logged users)")
-    @SecurityRequirement(name = "token")
     @PostMapping
     public ResponseEntity<Pet> save(@RequestBody Pet pet) {
-
         petService.save(pet);
         return ResponseEntity.ok(pet);
     }
@@ -34,9 +37,12 @@ public class PetController {
     @Operation(description = "Update pet (only for logged users)")
     @PutMapping
     public ResponseEntity<Pet> update(int id, @RequestBody Pet pet,
-                                      @AuthenticationPrincipal User user) {
+                                      HttpServletRequest request) {
 
-        if (petService.update(id, pet, user)) {
+        String token = jwtTokenProvider.resolveToken(request);
+        String username = jwtTokenProvider.getUserUsernameFromJWT(token);
+
+        if (petService.update(id, pet, username)) {
 
             return ResponseEntity.ok(pet);
         }
@@ -60,10 +66,13 @@ public class PetController {
     @Operation(description = "Delete pet by id (only for logged and own users)")
     @DeleteMapping("/{petId}")
     public ResponseEntity<Void> delete(@PathVariable int petId,
-                                       @AuthenticationPrincipal User user) {
+                                       HttpServletRequest request) {
 
 
-        if (petService.delete(petId, user)) {
+        String token = jwtTokenProvider.resolveToken(request);
+        String username = jwtTokenProvider.getUserUsernameFromJWT(token);
+
+        if (petService.delete(petId, username)) {
 
             return ResponseEntity.ok().build();
         }
@@ -82,10 +91,12 @@ public class PetController {
     @PostMapping("/{petId}/upload-image")
     public ResponseEntity<Pet> uploadImage(@PathVariable int petId,
                                            MultipartFile file,
-                                           @AuthenticationPrincipal User user) {
+                                           HttpServletRequest request) {
 
+        String token = jwtTokenProvider.resolveToken(request);
+        String username = jwtTokenProvider.getUserUsernameFromJWT(token);
 
-        if (petService.uploadImage(petId, file.getBytes(), user)) {
+        if (petService.uploadImage(petId, file.getBytes(), username)) {
 
             return ResponseEntity.ok().build();
         }
